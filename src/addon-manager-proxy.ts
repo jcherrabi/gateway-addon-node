@@ -11,23 +11,34 @@
 
 'use strict';
 
-const {APIRequest, APIResponse} = require('./api-handler');
-const {MessageType} = require('./constants');
+import { PluginClient } from "./plugin-client";
+import { Adapter } from "./adapter";
+import { Notifier } from "./notifier";
+import { APIHandler } from "./api-handler";
+import { Device } from "./device";
+import { Outlet } from "./outlet";
+import { Event } from "./event";
+import { Action } from "./action";
+import { Property } from "./property";
+
+const { APIRequest, APIResponse } = require('./api-handler');
+const { MessageType } = require('./constants');
 const EventEmitter = require('events').EventEmitter;
 
 const DEBUG = false;
 
-class AddonManagerProxy extends EventEmitter {
-  constructor(pluginClient) {
-    super();
+export class AddonManagerProxy extends EventEmitter {
+  private adapters = new Map<string, Adapter>();
+  private notifiers = new Map<string, Notifier>();
+  private apiHandlers = new Map<string, APIHandler>();
+  private onUnload?: () => {};
+  public gatewayVersion?: string;
+  public userProfile?: string;
 
-    this.adapters = new Map();
-    this.notifiers = new Map();
-    this.apiHandlers = new Map();
-    this.pluginClient = pluginClient;
+  constructor(private pluginClient: PluginClient) {
+    super();
     this.gatewayVersion = pluginClient.gatewayVersion;
     this.userProfile = pluginClient.userProfile;
-    this.onUnload = null;
   }
 
   /**
@@ -35,7 +46,7 @@ class AddonManagerProxy extends EventEmitter {
    *
    * Adds an adapter to the collection of adapters managed by AddonManager.
    */
-  addAdapter(adapter) {
+  addAdapter(adapter: Adapter) {
     const adapterId = adapter.id;
     DEBUG && console.log('AddonManagerProxy: addAdapter:', adapterId);
 
@@ -55,7 +66,7 @@ class AddonManagerProxy extends EventEmitter {
    *
    * Adds a notifier to the collection of notifiers managed by AddonManager.
    */
-  addNotifier(notifier) {
+  addNotifier(notifier: Notifier) {
     const notifierId = notifier.id;
     DEBUG && console.log('AddonManagerProxy: addNotifier:', notifierId);
 
@@ -75,7 +86,7 @@ class AddonManagerProxy extends EventEmitter {
    *
    * Adds a new API handler.
    */
-  addAPIHandler(handler) {
+  addAPIHandler(handler: APIHandler) {
     const packageName = handler.getPackageName();
     DEBUG && console.log('AddonManagerProxy: addAPIHandler:', packageName);
 
@@ -93,7 +104,7 @@ class AddonManagerProxy extends EventEmitter {
    *
    * Called when the indicated device has been added to an adapter.
    */
-  handleDeviceAdded(device) {
+  handleDeviceAdded(device: Device) {
     DEBUG && console.log('AddonManagerProxy: handleDeviceAdded:', device.id);
     const data = {
       adapterId: device.adapter.id,
@@ -109,9 +120,9 @@ class AddonManagerProxy extends EventEmitter {
    * @method handleDeviceRemoved
    * Called when the indicated device has been removed from an adapter.
    */
-  handleDeviceRemoved(device) {
+  handleDeviceRemoved(device: Device) {
     DEBUG && console.log('AddonManagerProxy: handleDeviceRemoved:',
-                         device.id);
+      device.id);
     this.pluginClient.sendNotification(
       MessageType.ADAPTER_REMOVE_DEVICE_RESPONSE,
       {
@@ -126,7 +137,7 @@ class AddonManagerProxy extends EventEmitter {
    *
    * Called when the indicated outlet has been added to a notifier.
    */
-  handleOutletAdded(outlet) {
+  handleOutletAdded(outlet: Outlet) {
     DEBUG && console.log('AddonManagerProxy: handleOutletAdded:', outlet.id);
     const data = {
       notifierId: outlet.notifier.id,
@@ -142,9 +153,9 @@ class AddonManagerProxy extends EventEmitter {
    * @method handleOutletRemoved
    * Called when the indicated outlet has been removed from a notifier.
    */
-  handleOutletRemoved(outlet) {
+  handleOutletRemoved(outlet: Outlet) {
     DEBUG && console.log('AddonManagerProxy: handleOutletRemoved:',
-                         outlet.id);
+      outlet.id);
     this.pluginClient.sendNotification(
       MessageType.OUTLET_REMOVED_NOTIFICATION,
       {
@@ -158,7 +169,7 @@ class AddonManagerProxy extends EventEmitter {
    * @method onMsg
    * Called whenever a message is received from the gateway.
    */
-  onMsg(msg) {
+  onMsg(msg: any) {
     DEBUG && console.log('AddonManagerProxy: Rcvd:', msg);
 
     switch (msg.messageType) {
@@ -438,8 +449,8 @@ class AddonManagerProxy extends EventEmitter {
             // expecting a reply, so we report the error
             // and just send whatever the current value is.
             console.error('AddonManagerProxy: Failed to setProperty',
-                          propertyName, 'to', propertyValue,
-                          'for device:', deviceId);
+              propertyName, 'to', propertyValue,
+              'for device:', deviceId);
             if (err) {
               console.error(err);
             }
@@ -447,7 +458,7 @@ class AddonManagerProxy extends EventEmitter {
           });
         } else {
           console.error('AddonManagerProxy: Unknown property:',
-                        propertyName);
+            propertyName);
         }
         break;
       }
@@ -469,7 +480,7 @@ class AddonManagerProxy extends EventEmitter {
             );
           }).catch((err) => {
             console.error('AddonManagerProxy: Failed to request action',
-                          actionName, 'for device:', deviceId);
+              actionName, 'for device:', deviceId);
             if (err) {
               console.error(err);
             }
@@ -505,7 +516,7 @@ class AddonManagerProxy extends EventEmitter {
             );
           }).catch((err) => {
             console.error('AddonManagerProxy: Failed to remove action',
-                          actionName, 'for device:', deviceId);
+              actionName, 'for device:', deviceId);
             if (err) {
               console.error(err);
             }
@@ -576,7 +587,7 @@ class AddonManagerProxy extends EventEmitter {
           }).catch((err) => {
             console.error(
               `AddonManagerProxy: Failed to set credentials for device ${
-                deviceId}`);
+              deviceId}`);
             if (err) {
               console.error(err);
             }
@@ -607,8 +618,8 @@ class AddonManagerProxy extends EventEmitter {
    * @method sendPairingPrompt
    * Send a prompt to the UI notifying the user to take some action.
    */
-  sendPairingPrompt(adapter, prompt, url = null, device = null) {
-    const data = {
+  sendPairingPrompt(adapter: Adapter, prompt: string, url?: string, device?: Device) {
+    const data: any = {
       adapterId: adapter.id,
       prompt: prompt,
     };
@@ -631,8 +642,8 @@ class AddonManagerProxy extends EventEmitter {
    * @method sendUnpairingPrompt
    * Send a prompt to the UI notifying the user to take some action.
    */
-  sendUnpairingPrompt(adapter, prompt, url = null, device = null) {
-    const data = {
+  sendUnpairingPrompt(adapter: Adapter, prompt: string, url?: string, device?: Device) {
+    const data: any = {
       adapterId: adapter.id,
       prompt: prompt,
     };
@@ -655,7 +666,7 @@ class AddonManagerProxy extends EventEmitter {
    * @method sendPropertyChangedNotification
    * Sends a propertyChanged notification to the gateway.
    */
-  sendPropertyChangedNotification(property) {
+  sendPropertyChangedNotification(property: Property) {
     this.pluginClient.sendNotification(
       MessageType.DEVICE_PROPERTY_CHANGED_NOTIFICATION,
       {
@@ -670,7 +681,7 @@ class AddonManagerProxy extends EventEmitter {
    * @method sendActionStatusNotification
    * Sends an actionStatus notification to the gateway.
    */
-  sendActionStatusNotification(action) {
+  sendActionStatusNotification(action: Action) {
     this.pluginClient.sendNotification(
       MessageType.DEVICE_ACTION_STATUS_NOTIFICATION,
       {
@@ -685,7 +696,7 @@ class AddonManagerProxy extends EventEmitter {
    * @method sendEventNotification
    * Sends an event notification to the gateway.
    */
-  sendEventNotification(event) {
+  sendEventNotification(event: Event) {
     this.pluginClient.sendNotification(
       MessageType.DEVICE_EVENT_NOTIFICATION,
       {
@@ -700,7 +711,7 @@ class AddonManagerProxy extends EventEmitter {
    * @method sendConnectedNotification
    * Sends a connected notification to the gateway.
    */
-  sendConnectedNotification(device, connected) {
+  sendConnectedNotification(device: Device, connected: boolean) {
     this.pluginClient.sendNotification(
       MessageType.DEVICE_CONNECTED_STATE_NOTIFICATION,
       {
@@ -718,7 +729,7 @@ class AddonManagerProxy extends EventEmitter {
    */
   unloadPlugin() {
     if (this.pluginClient.ipcProtocol === 'inproc') {
-      if (this.onUnload !== null) {
+      if (this.onUnload) {
         this.onUnload();
       }
     } else {
@@ -731,7 +742,7 @@ class AddonManagerProxy extends EventEmitter {
     this.pluginClient.sendNotification(MessageType.PLUGIN_UNLOAD_RESPONSE, {});
   }
 
-  sendError(message) {
+  sendError(message: string) {
     this.pluginClient.sendNotification(
       MessageType.PLUGIN_ERROR_NOTIFICATION,
       {
@@ -740,5 +751,3 @@ class AddonManagerProxy extends EventEmitter {
     );
   }
 }
-
-module.exports = AddonManagerProxy;

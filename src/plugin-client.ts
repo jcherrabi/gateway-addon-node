@@ -11,24 +11,28 @@
 
 'use strict';
 
-const AddonManagerProxy = require('./addon-manager-proxy');
-const {MessageType} = require('./constants');
-const Deferred = require('./deferred');
-const EventEmitter = require('events');
-const IpcSocket = require('./ipc');
+import { AddonManagerProxy } from './addon-manager-proxy';
+const { MessageType } = require('./constants');
+import { Deferred } from './deferred';
+import EventEmitter from 'events';
+import { IpcSocket } from './ipc';
 
-class PluginClient extends EventEmitter {
+export class PluginClient extends EventEmitter {
+  private deferredReply: any;
+  private verbose: boolean;
+  public gatewayVersion?: string;
+  public userProfile?: string;
+  private addonManager?: AddonManagerProxy;
+  private pluginIpcBaseAddr: any;
+  private pluginIpcSocket?: IpcSocket;
+  private managerIpcSocket?: IpcSocket;
 
-  constructor(pluginId, ipcProtocol, appInstance, {verbose} = {}) {
+  constructor(private pluginId: string, public ipcProtocol: string, private appInstance: string, { verbose = false } = {}) {
     super();
-    this.pluginId = pluginId;
-    this.ipcProtocol = ipcProtocol;
-    this.appInstance = appInstance;
     this.verbose = verbose;
-    this.deferredReply = null;
   }
 
-  onManagerMsg(msg) {
+  onManagerMsg(msg: any) {
     this.verbose &&
       console.log('PluginClient: rcvd ManagerMsg:', msg);
 
@@ -47,14 +51,14 @@ class PluginClient extends EventEmitter {
       this.pluginIpcBaseAddr = msg.data.ipcBaseAddr;
       this.pluginIpcSocket =
         new IpcSocket('PluginClient', 'pair',
-                      this.ipcProtocol,
-                      this.pluginIpcBaseAddr,
-                      this.addonManager.onMsg.bind(this.addonManager),
-                      this.appInstance);
-      this.pluginIpcSocket.connect(this.pluginIpcAddr);
+          this.ipcProtocol,
+          this.pluginIpcBaseAddr,
+          this.addonManager.onMsg.bind(this.addonManager),
+          this.appInstance);
+      this.pluginIpcSocket.connect();
       this.verbose &&
         console.log('PluginClient: registered with PluginServer:',
-                    this.pluginIpcSocket.ipcAddr);
+          this.pluginIpcSocket.ipcAddr);
 
       const deferredReply = this.deferredReply;
       this.deferredReply = null;
@@ -63,6 +67,9 @@ class PluginClient extends EventEmitter {
       console.error('Unexpected registration reply for gateway');
       console.error(msg);
     }
+  }
+  pluginIpcAddr(_pluginIpcAddr: any) {
+    throw new Error("Method not implemented.");
   }
 
   register() {
@@ -74,16 +81,16 @@ class PluginClient extends EventEmitter {
 
     this.managerIpcSocket =
       new IpcSocket('PluginClientServer', 'req',
-                    this.ipcProtocol,
-                    'gateway.addonManager',
-                    this.onManagerMsg.bind(this),
-                    this.appInstance);
+        this.ipcProtocol,
+        'gateway.addonManager',
+        this.onManagerMsg.bind(this),
+        this.appInstance);
     this.managerIpcSocket.connect();
 
     // Register ourselves with the server
     this.verbose &&
       console.log('Connected to server:', this.managerIpcSocket.ipcAddr,
-                  'registering...');
+        'registering...');
 
     this.managerIpcSocket.sendJson({
       messageType: MessageType.PLUGIN_REGISTER_REQUEST,
@@ -95,17 +102,23 @@ class PluginClient extends EventEmitter {
     return this.deferredReply.promise;
   }
 
-  sendNotification(methodType, data) {
+  sendNotification(methodType: string, data: any) {
     data.pluginId = this.pluginId;
-    this.pluginIpcSocket.sendJson({
-      messageType: methodType,
-      data: data,
-    });
+    if (this.pluginIpcSocket) {
+      this.pluginIpcSocket.sendJson({
+        messageType: methodType,
+        data: data,
+      });
+    }
   }
 
   unload() {
-    this.pluginIpcSocket.close();
-    this.managerIpcSocket.close();
+    if (this.pluginIpcSocket) {
+      this.pluginIpcSocket.close();
+    }
+    if (this.managerIpcSocket) {
+      this.managerIpcSocket.close();
+    }
     this.emit('unloaded', {});
   }
 }

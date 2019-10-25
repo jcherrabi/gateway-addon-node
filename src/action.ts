@@ -8,28 +8,26 @@
 
 'use strict';
 
-const utils = require('./utils');
+import * as utils from './utils';
+import { Device } from './device';
 
 /**
  * An Action represents an individual action on a device.
  */
-class Action {
-  constructor(id, device, name, input) {
-    /**
-     * Initialize the object.
-     *
-     * @param {String} id ID of this action
-     * @param {Object} device Device this action belongs to
-     * @param {String} name Name of the action
-     * @param {Object} input Any action inputs
-     */
-    this.id = id;
-    this.device = device;
-    this.name = name;
-    this.input = input;
-    this.status = 'created';
-    this.timeRequested = utils.timestamp();
-    this.timeCompleted = null;
+export class Action implements ActionDescription {
+  public status: string = 'created';
+  public timeRequested: string = utils.timestamp();;
+  public timeCompleted?: string;
+
+  /**
+   * Initialize the object.
+   *
+   * @param {String} id ID of this action
+   * @param {Object} device Device this action belongs to
+   * @param {String} name Name of the action
+   * @param {Object} input Any action inputs
+   */
+  constructor(public id: string, public device: Device, public name: string, public input: any) {
   }
 
   /**
@@ -37,18 +35,18 @@ class Action {
    *
    * @returns {Object} Description of the action as an object.
    */
-  asActionDescription() {
-    const description = {
+  asActionDescription(): ActionDescription {
+    const description: ActionDescription = {
       name: this.name,
       timeRequested: this.timeRequested,
       status: this.status,
     };
 
-    if (this.input !== null) {
+    if (this.input) {
       description.input = this.input;
     }
 
-    if (this.timeCompleted !== null) {
+    if (this.timeCompleted) {
       description.timeCompleted = this.timeCompleted;
     }
 
@@ -60,7 +58,7 @@ class Action {
    *
    * @returns {Object} Description of the action as an object.
    */
-  asDict() {
+  asDict(): ActionDescriptionWithId {
     return {
       id: this.id,
       name: this.name,
@@ -89,4 +87,14 @@ class Action {
   }
 }
 
-module.exports = Action;
+interface ActionDescription {
+  name: string,
+  timeRequested: string,
+  status: any,
+  input?: any,
+  timeCompleted?: any
+}
+
+interface ActionDescriptionWithId extends ActionDescription {
+  id: string
+}

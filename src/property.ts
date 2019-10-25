@@ -10,84 +10,79 @@
 
 'use strict';
 
+import { Device } from "./device";
+
 const assert = require('assert');
 
-const DESCR_FIELDS = [
-  'title',
-  'type',
-  '@type',
-  'unit',
-  'description',
-  'minimum',
-  'maximum',
-  'enum',
-  'readOnly',
-  'multipleOf',
-  'links',
-];
-function copyDescrFieldsInto(target, source) {
-  // Check 'min' and 'max' for backwards compatibility.
-  if (source.hasOwnProperty('min')) {
-    target.minimum = source.min;
-  }
+export class Property implements PropertyDescription {
+  public visible: boolean;
+  public title?: string;
+  public type?: string;
+  public '@type'?: string;
+  public unit?: string;
+  public description?: string;
+  public minimum?: number;
+  public maximum?: number;
+  public enum?: string[];
+  public readOnly?: boolean;
+  public multipleOf?: number;
+  public links?: string[];
 
-  if (source.hasOwnProperty('max')) {
-    target.maximum = source.max;
-  }
+  public value: any;
+  public prevGetValue: any;
 
-  // Check 'label' for backwards compatibility.
-  if (source.hasOwnProperty('label')) {
-    target.title = source.label;
-  }
+  public fireAndForget = false;
 
-  for (const field of DESCR_FIELDS) {
-    if (source.hasOwnProperty(field)) {
-      target[field] = source[field];
-    }
-  }
-}
-
-class Property {
-  constructor(device, name, propertyDescr) {
+  constructor(public device: Device, public name: string, public propertyDescr: LegacyPropertyDescription) {
     // The propertyDescr argument used to be the 'type' string, so we add an
     // assertion here to notify anybody who has an older plugin.
-
     assert.equal(typeof propertyDescr, 'object',
-                 'Please update plugin to use property description.');
+      'Please update plugin to use property description.');
 
-    this.device = device;
-    this.name = name;
-    this.visible = true;
-    this.fireAndForget = false;
-    if (propertyDescr.hasOwnProperty('visible')) {
-      this.visible = propertyDescr.visible;
-    }
-
-    copyDescrFieldsInto(this, propertyDescr);
+    this.visible = propertyDescr.visible || true;
+    this.title = propertyDescr.title || propertyDescr.label;
+    this.type = propertyDescr.type;
+    this['@type'] = propertyDescr['@type'];
+    this.unit = propertyDescr.unit;
+    this.description = propertyDescr.description;
+    this.minimum = propertyDescr.minimum || propertyDescr.min;
+    this.maximum = propertyDescr.maximum || propertyDescr.max;
+    this.enum = propertyDescr.enum;
+    this.readOnly = propertyDescr.readOnly;
+    this.multipleOf = propertyDescr.multipleOf;
+    this.links = propertyDescr.links;
   }
 
   /**
    * @returns a dictionary of useful information.
    * This is primarily used for debugging.
    */
-  asDict() {
-    const prop = {
+  asDict(): PropertyDict {
+    return {
       name: this.name,
       value: this.value,
       visible: this.visible,
     };
-    copyDescrFieldsInto(prop, this);
-    return prop;
   }
 
   /**
    * @returns the dictionary as used to describe a property. Currently
    * this does not include the href field.
    */
-  asPropertyDescription() {
-    const description = {};
-    copyDescrFieldsInto(description, this);
-    return description;
+  asPropertyDescription(): PropertyDescription {
+    return {
+      title: this.title,
+      type: this.type,
+      '@type': this['@type'],
+      unit: this.unit,
+      description: this.description,
+      minimum: this.minimum,
+      maximum: this.maximum,
+      enum: this.enum,
+      readOnly: this.readOnly,
+      multipleOf: this.multipleOf,
+      links: this.links
+    };
   }
 
   /**
@@ -103,7 +98,7 @@ class Property {
    * Sets the value and notifies the device if the value has changed.
    * @returns true if the value has changed
    */
-  setCachedValueAndNotify(value) {
+  setCachedValueAndNotify(value: any) {
     const oldValue = this.value;
     this.setCachedValue(value);
 
@@ -115,7 +110,7 @@ class Property {
       this.device.notifyPropertyChanged(this);
 
       console.log('setCachedValueAndNotify for property', this.name,
-                  'from', oldValue, 'to', this.value, 'for', this.device.id);
+        'from', oldValue, 'to', this.value, 'for', this.device.id);
     }
 
     return hasChanged;
@@ -125,7 +120,7 @@ class Property {
    * Sets this.value and makes adjustments to ensure that the value
    * is consistent with the type.
    */
-  setCachedValue(value) {
+  setCachedValue(value: any) {
     if (this.type === 'boolean') {
       // Make sure that the value is actually a boolean.
       this.value = !!value;
@@ -146,8 +141,8 @@ class Property {
     return new Promise((resolve) => {
       if (this.value != this.prevGetValue) {
         console.log('getValue for property', this.name,
-                    'for:', this.device.title,
-                    'returning', this.value);
+          'for:', this.device.title,
+          'returning', this.value);
         this.prevGetValue = this.value;
       }
       resolve(this.value);
@@ -164,30 +159,30 @@ class Property {
    * It is anticipated that this method will most likely be overridden
    * by a derived class.
    */
-  setValue(value) {
+  setValue(value: any) {
     return new Promise((resolve, reject) => {
       if (this.readOnly) {
         reject('Read-only property');
         return;
       }
 
-      if (this.hasOwnProperty('minimum') && value < this.minimum) {
+      if (this.minimum && value < this.minimum) {
         reject(`Value less than minimum: ${this.minimum}`);
         return;
       }
 
-      if (this.hasOwnProperty('maximum') && value > this.maximum) {
+      if (this.maximum && value > this.maximum) {
         reject(`Value greater than maximum: ${this.maximum}`);
         return;
       }
 
-      if (this.hasOwnProperty('multipleOf') && value % this.multipleOf !== 0) {
+      if (this.multipleOf && value % this.multipleOf !== 0) {
         reject(`Value is not a multiple of: ${this.multipleOf}`);
         return;
       }
 
-      if (this.hasOwnProperty('enum') && this.enum.length > 0 &&
-          !this.enum.includes(value)) {
+      if (this.enum && this.enum.length > 0 &&
+        !this.enum.includes(value)) {
         reject('Invalid enum value');
         return;
       }
@@ -198,4 +193,29 @@ class Property {
   }
 }
 
-module.exports = Property;
+export interface PropertyDict {
+  name: string,
+  value: any,
+  visible: boolean
+}
+
+export interface PropertyDescription {
+  visible?: boolean;
+  title?: string;
+  type?: string;
+  '@type'?: string;
+  unit?: string;
+  description?: string;
+  minimum?: number;
+  maximum?: number;
+  enum?: string[];
+  readOnly?: boolean;
+  multipleOf?: number;
+  links?: string[];
+}
+
+interface LegacyPropertyDescription extends PropertyDescription {
+  min?: number;
+  max?: number;
+  label?: string;
+}

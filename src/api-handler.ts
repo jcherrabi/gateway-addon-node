@@ -12,10 +12,16 @@
 
 'use strict';
 
+import { AddonManager } from "./addon-manager";
+
 /**
  * Class which holds an API request.
  */
-class APIRequest {
+export class APIRequest {
+  public method: string;
+  public path: string;
+  public query: any;
+  public body: any;
   /**
    * Build the request.
    *
@@ -30,7 +36,7 @@ class APIRequest {
    *                     application/x-www-form-urlencoded data in order for it
    *                     to be parsed properly.
    */
-  constructor(params) {
+  constructor(params: RequestParams) {
     this.method = params.method;
     this.path = params.path;
     this.query = params.query || {};
@@ -38,10 +44,20 @@ class APIRequest {
   }
 }
 
+interface RequestParams {
+  method: string;
+  path: string;
+  query: {};
+  body: {};
+}
+
 /**
  * Convenience class to build an API response.
  */
-class APIResponse {
+export class APIResponse {
+  public status: number;
+  public contentType?: string;
+  public content?: string;
   /**
    * Build the response.
    *
@@ -50,28 +66,22 @@ class APIResponse {
    *                   .contentType {string} Content-Type of response content
    *                   .content {string} Response content
    */
-  constructor(params) {
-    if (!params || !params.hasOwnProperty('status')) {
+  constructor(params: ResponseParams) {
+    if (!params || !params.status) {
       this.status = 500;
-      this.contentType = null;
-      this.content = null;
       return;
     }
 
     this.status = Number(params.status);
 
-    if (typeof params.contentType === 'undefined') {
-      this.contentType = null;
-    } else if (params.contentType !== null &&
-               typeof params.contentType !== 'string') {
+    if (params.contentType !== null &&
+      typeof params.contentType !== 'string') {
       this.contentType = `${params.contentType}`;
     } else {
       this.contentType = params.contentType;
     }
 
-    if (typeof params.content === 'undefined') {
-      this.content = null;
-    } else if (params.content !== null && typeof params.content !== 'string') {
+    if (params.content !== null && typeof params.content !== 'string') {
       this.content = `${params.content}`;
     } else {
       this.content = params.content;
@@ -79,16 +89,23 @@ class APIResponse {
   }
 }
 
+interface ResponseParams {
+  status: number;
+  contentType?: string;
+  content?: string;
+}
+
 /**
  * Base class for API handlers, which handle sending alerts to a user.
  * @class Notifier
  */
-class APIHandler {
-  constructor(addonManager, packageName) {
-    this.manager = addonManager;
-    this.packageName = packageName;
-    this.gatewayVersion = addonManager.gatewayVersion;
-    this.userProfile = addonManager.userProfile;
+export class APIHandler {
+  public gatewayVersion: string;
+  public userProfile: any;
+
+  constructor(manager: AddonManager, private packageName: string) {
+    this.gatewayVersion = manager.gatewayVersion;
+    this.userProfile = manager.userProfile;
   }
 
   getPackageName() {
@@ -104,9 +121,9 @@ class APIHandler {
    *
    * @returns {APIResponse} API response object.
    */
-  async handleRequest(request) {
+  async handleRequest(request: APIRequest) {
     console.log(`New API request for ${this.packageName}:`, request);
-    return new APIResponse({status: 404});
+    return new APIResponse({ status: 404 });
   }
 
   /**
@@ -120,4 +137,4 @@ class APIHandler {
   }
 }
 
-module.exports = {APIHandler, APIRequest, APIResponse};
+module.exports = { APIHandler, APIRequest, APIResponse };

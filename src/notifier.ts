@@ -11,25 +11,27 @@
 
 'use strict';
 
+import { AddonManager } from './addon-manager';
+import { Outlet } from './outlet';
+
 /**
  * Base class for notifiers, which handle sending alerts to a user.
  * @class Notifier
  */
-class Notifier {
-  constructor(addonManager, id, packageName) {
-    this.manager = addonManager;
-    this.id = id;
-    this.packageName = packageName;
-    this.name = this.constructor.name;
-    this.outlets = {};
+export class Notifier implements NotifierDescription {
+  public name: string = this.constructor.name;
+  public outlets: { [id: string]: Outlet } = {};
 
-    // We assume that the notifier is ready right away. If, for some reason a
-    // particular notifier needs some time, then it should set ready to false
-    // in its constructor.
-    this.ready = true;
+  // We assume that the notifier is ready right away. If, for some reason a
+  // particular notifier needs some time, then it should set ready to false
+  // in its constructor.
+  public ready: boolean = true;
+  public gatewayVersion: string;
+  public userProfile: any;
 
-    this.gatewayVersion = addonManager.gatewayVersion;
-    this.userProfile = addonManager.userProfile;
+  constructor(public manager: AddonManager, public id: string, public packageName: string) {
+    this.gatewayVersion = manager.gatewayVersion;
+    this.userProfile = manager.userProfile;
   }
 
   dump() {
@@ -48,7 +50,7 @@ class Notifier {
     return this.packageName;
   }
 
-  getOutlet(id) {
+  getOutlet(id: string) {
     return this.outlets[id];
   }
 
@@ -64,7 +66,7 @@ class Notifier {
     return this.ready;
   }
 
-  asDict() {
+  asDict(): NotifierDescription {
     return {
       id: this.getId(),
       name: this.getName(),
@@ -77,7 +79,7 @@ class Notifier {
    *
    * Called to indicate that an outlet is now being managed by this notifier.
    */
-  handleOutletAdded(outlet) {
+  handleOutletAdded(outlet: Outlet) {
     this.outlets[outlet.id] = outlet;
     this.manager.handleOutletAdded(outlet);
   }
@@ -87,7 +89,7 @@ class Notifier {
    *
    * Called to indicate that an outlet is no longer managed by this notifier.
    */
-  handleOutletRemoved(outlet) {
+  handleOutletRemoved(outlet: Outlet) {
     delete this.outlets[outlet.id];
     this.manager.handleOutletRemoved(outlet);
   }
@@ -103,4 +105,8 @@ class Notifier {
   }
 }
 
-module.exports = Notifier;
+interface NotifierDescription {
+  id: string,
+  name: string,
+  ready: boolean,
+}

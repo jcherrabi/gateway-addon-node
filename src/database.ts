@@ -8,10 +8,11 @@
 
 'use strict';
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { Database as SQLiteDatabase, verbose } from 'sqlite3';
+const sqlite3 = verbose();
 
 const DB_PATHS = [
   path.join(os.homedir(), 'mozilla-iot', 'gateway', 'db.sqlite3'),
@@ -21,28 +22,26 @@ const DB_PATHS = [
 ];
 
 if (process.env.hasOwnProperty('MOZIOT_HOME')) {
-  DB_PATHS.unshift(path.join(process.env.MOZIOT_HOME, 'config', 'db.sqlite3'));
+  DB_PATHS.unshift(path.join(process.env['MOZIOT_HOME'] || '', 'config', 'db.sqlite3'));
 }
 
 if (process.env.hasOwnProperty('MOZIOT_DATABASE')) {
-  DB_PATHS.unshift(process.env.MOZIOT_DATABASE);
+  DB_PATHS.unshift(process.env['MOZIOT_DATABASE'] || '');
 }
 
 /**
  * An Action represents an individual action on a device.
  */
-class Database {
+export class Database {
+  private conn?: SQLiteDatabase;
+
   /**
    * Initialize the object.
    *
    * @param {String} packageName The adapter's package name
    * @param {String?} path Optional database path
    */
-  constructor(packageName, path = null) {
-    this.packageName = packageName;
-    this.path = path;
-    this.conn = null;
-
+  constructor(public packageName: string, public path: string | null = null) {
     if (!this.path) {
       for (const p of DB_PATHS) {
         if (fs.existsSync(p)) {
@@ -67,17 +66,20 @@ class Database {
       return Promise.reject(new Error('Database path unknown'));
     }
 
+    const path = this.path;
+
     return new Promise((resolve, reject) => {
-      this.conn = new sqlite3.Database(
-        this.path,
-        (err) => {
+      const conn = new sqlite3.Database(
+        path,
+        (err: any) => {
           if (err) {
             reject(err);
           } else {
-            this.conn.configure('busyTimeout', 10000);
+            conn.configure('busyTimeout', 10000);
             resolve();
           }
         });
+      this.conn = conn;
     });
   }
 
@@ -87,7 +89,7 @@ class Database {
   close() {
     if (this.conn) {
       this.conn.close();
-      this.conn = null;
+      this.conn = undefined;
     }
   }
 
@@ -101,13 +103,15 @@ class Database {
       return Promise.reject('Database not open');
     }
 
+    const conn = this.conn;
+
     const key = `addons.config.${this.packageName}`;
 
     return new Promise((resolve, reject) => {
-      this.conn.get(
+      conn.get(
         'SELECT value FROM settings WHERE key = ?',
         [key],
-        (error, row) => {
+        (error: any, row: any) => {
           if (error) {
             reject(error);
           } else if (!row) {
@@ -122,15 +126,17 @@ class Database {
   /**
    * Save the package's config to the database.
    */
-  saveConfig(config) {
+  saveConfig(config: any) {
     if (!this.conn) {
       return;
     }
 
+    const conn = this.conn;
+
     const key = `addons.config.${this.packageName}`;
 
     return new Promise((resolve, reject) => {
-      this.conn.run(
+      conn.run(
         'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
         [key, JSON.stringify(config)],
         (error) => {
@@ -143,5 +149,3 @@ class Database {
     });
   }
 }
-
-module.exports = Database;

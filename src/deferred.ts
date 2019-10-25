@@ -11,7 +11,12 @@ const DEBUG = false;
 
 let id = 0;
 
-class Deferred {
+export class Deferred {
+  private id: number;
+  public promise: Promise<any>;
+  private resolveFunc: { (value?: any): void; (arg0: any): void; } = () => { };
+  private rejectFunc: { (reason?: any): void; (arg0: any): void; } = () => { };
+
   constructor() {
     this.id = ++id;
     this.promise = new Promise((resolve, reject) => {
@@ -23,21 +28,19 @@ class Deferred {
     }
   }
 
-  resolve(arg) {
+  resolve(arg: any) {
     if (DEBUG) {
       console.log('Deferred: Resolving deferred promise id:', this.id,
-                  'arg:', arg);
+        'arg:', arg);
     }
     return this.resolveFunc(arg);
   }
 
-  reject(arg) {
+  reject(arg: any) {
     if (DEBUG) {
       console.log('Deferred: Rejecting deferred promise id:', this.id,
-                  'arg:', arg);
+        'arg:', arg);
     }
     return this.rejectFunc(arg);
   }
 }
-
-module.exports = Deferred;

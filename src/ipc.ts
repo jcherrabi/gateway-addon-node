@@ -1,9 +1,9 @@
 'use strict';
 
-const Ajv = require('ajv');
-const fs = require('fs');
-const nanomsg = require('nanomsg');
-const path = require('path');
+import Ajv, { ValidateFunction } from 'ajv';
+import fs from 'fs';
+import nanomsg, { Socket } from 'nanomsg';
+import path from 'path';
 
 const DEBUG = false;
 const DEBUG_MSG = false;
@@ -12,15 +12,18 @@ const boundAddrs = new Set();
 const connectedAddrs = new Set();
 let socketId = 0;
 
-class IpcSocket {
+export class IpcSocket {
+  private socket: Socket;
+  private socketId: any;
+  private ipcFile: string;
+  public ipcAddr: string;
+  private logPrefix: string;
+  private connected: boolean;
+  private bound: boolean;
+  private validate: ValidateFunction;
 
-  constructor(name, socketType, protocol, baseAddr, onMsg, appInstance) {
-    this.name = name;
-    this.socketType = socketType;
+  constructor(private name: string, private socketType: string, private protocol: string, baseAddr: string, private onMsg: (data: any) => void, appInstance: string) {
     this.socket = nanomsg.socket(socketType);
-    this.protocol = protocol;
-    this.baseAddr = baseAddr;
-    this.onMsg = onMsg;
     socketId += 1;
     this.socketId = socketId;
 
@@ -55,28 +58,28 @@ class IpcSocket {
 
     // top-level schema
     schemas.push(
-      JSON.parse(fs.readFileSync(path.join(baseDir, 'schema.json')))
+      JSON.parse(fs.readFileSync(path.join(baseDir, 'schema.json')).toString())
     );
 
     // individual message schemas
     for (const fname of fs.readdirSync(path.join(baseDir, 'messages'))) {
       schemas.push(
-        JSON.parse(fs.readFileSync(path.join(baseDir, 'messages', fname)))
+        JSON.parse(fs.readFileSync(path.join(baseDir, 'messages', fname)).toString())
       );
     }
 
     // now, build the validator using all the schemas
-    this.validate = new Ajv({schemas}).getSchema(schemas[0].$id);
+    this.validate = new Ajv({ schemas }).getSchema(schemas[0].$id);
   }
 
-  error() {
-    Array.prototype.unshift.call(arguments, this.logPrefix);
-    console.error.apply(null, arguments);
+  error(...args: [any?, ...any[]]) {
+    Array.prototype.unshift.call(args, this.logPrefix);
+    console.error.apply(null, args);
   }
 
-  log() {
-    Array.prototype.unshift.call(arguments, this.logPrefix);
-    console.log.apply(null, arguments);
+  log(...args: [any?, ...any[]]) {
+    Array.prototype.unshift.call(args, this.logPrefix);
+    console.log.apply(null, args);
   }
 
   bind() {
@@ -150,7 +153,7 @@ class IpcSocket {
    *
    * Called anytime a new message has been received.
    */
-  onData(buf) {
+  onData(buf: Buffer) {
     const bufStr = buf.toString();
     let data;
     try {
@@ -164,7 +167,7 @@ class IpcSocket {
     DEBUG_MSG && this.log(this.name, 'Rcvd:', data);
 
     // validate the message before forwarding to handler
-    if (!this.validate({message: data})) {
+    if (!this.validate({ message: data })) {
       console.error('Invalid message received:', data);
     }
 
@@ -178,7 +181,7 @@ class IpcSocket {
    * Async function which will convert the passed object
    * into json, send it and not wait for any type of reply.
    */
-  sendJson(obj) {
+  sendJson(obj: any) {
     const jsonObj = JSON.stringify(obj);
     DEBUG_MSG && this.log(this.name, 'Sending:', jsonObj);
     this.socket.send(jsonObj);
