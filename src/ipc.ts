@@ -181,7 +181,7 @@ export class IpcSocket {
    * Async function which will convert the passed object
    * into json, send it and not wait for any type of reply.
    */
-  sendJson(obj: any) {
+  sendJson(obj: object) {
     const jsonObj = JSON.stringify(obj);
     DEBUG_MSG && this.log(this.name, 'Sending:', jsonObj);
     this.socket.send(jsonObj);
