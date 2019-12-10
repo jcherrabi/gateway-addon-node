@@ -15,7 +15,7 @@ import { Device } from './device';
  * An Event represents an individual event from a device.
  */
 export class Event {
-  public timestamp = utils.timestamp();
+  public timestamp: string = utils.timestamp();
 
   /**
    * Initialize the object.
