@@ -11,15 +11,15 @@ const DEBUG = false;
 
 let id = 0;
 
-export class Deferred {
+export class Deferred<T> {
   private id: number;
-  public promise: Promise<any>;
-  private resolveFunc: { (value?: any): void; (arg0: any): void; } = () => { };
-  private rejectFunc: { (reason?: any): void; (arg0: any): void; } = () => { };
+  public promise: Promise<T>;
+  private resolveFunc: (value?: T | PromiseLike<T> | undefined) => void = () => { };
+  private rejectFunc: (reason?: any) => void = () => { };
 
   constructor() {
     this.id = ++id;
-    this.promise = new Promise((resolve, reject) => {
+    this.promise = new Promise<T>((resolve, reject) => {
       this.resolveFunc = resolve;
       this.rejectFunc = reject;
     });
@@ -28,7 +28,7 @@ export class Deferred {
     }
   }
 
-  resolve(arg: any) {
+  resolve(arg: T) {
     if (DEBUG) {
       console.log('Deferred: Resolving deferred promise id:', this.id,
         'arg:', arg);
