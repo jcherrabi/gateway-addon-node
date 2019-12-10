@@ -21,8 +21,8 @@ import { equal } from 'assert';
 export class APIRequest {
   public method: string;
   public path: string;
-  public query: any;
-  public body: any;
+  public query: object;
+  public body: object;
   /**
    * Build the request.
    *
@@ -48,8 +48,8 @@ export class APIRequest {
 interface RequestParams {
   method: string;
   path: string;
-  query: {};
-  body: {};
+  query: object;
+  body: object;
 }
 
 /**
