@@ -13,6 +13,7 @@
 'use strict';
 
 import { AddonManager } from "./addon-manager";
+import { equal } from 'assert';
 
 /**
  * Class which holds an API request.
@@ -66,25 +67,32 @@ export class APIResponse {
    *                   .contentType {string} Content-Type of response content
    *                   .content {string} Response content
    */
-  constructor(params: ResponseParams) {
-    if (!params || !params.status) {
+  constructor(params?: ResponseParams) {
+    const {
+      status,
+      contentType,
+      content
+    } = params || {};
+
+    if (!status) {
       this.status = 500;
       return;
     }
 
-    this.status = Number(params.status);
+    equal(typeof status, 'number',
+      'status should be a number');
+    this.status = status;
 
-    if (params.contentType !== null &&
-      typeof params.contentType !== 'string') {
-      this.contentType = `${params.contentType}`;
-    } else {
-      this.contentType = params.contentType;
+    if (contentType) {
+      equal(typeof contentType, 'string',
+        'contentType should be a string');
+      this.contentType = contentType;
     }
 
-    if (params.content !== null && typeof params.content !== 'string') {
-      this.content = `${params.content}`;
-    } else {
-      this.content = params.content;
+    if (content) {
+      equal(typeof content, 'string',
+        'content should be a string');
+      this.content = content;
     }
   }
 }
