@@ -15,7 +15,7 @@ import { Device } from "./device";
 const assert = require('assert');
 
 export class Property<T> implements PropertyDescription {
-  public visible: boolean;
+  public visible: boolean = true;
   public title?: string;
   public type?: string;
   public '@type'?: string;
@@ -33,24 +33,41 @@ export class Property<T> implements PropertyDescription {
 
   public fireAndForget = false;
 
-  constructor(public device: Device, public name: string, public propertyDescr: LegacyPropertyDescription) {
+  constructor(public device: Device, public name: string, public legacyPropertyDescr: PropertyDescription) {
     // The propertyDescr argument used to be the 'type' string, so we add an
     // assertion here to notify anybody who has an older plugin.
-    assert.equal(typeof propertyDescr, 'object',
+    assert.equal(typeof legacyPropertyDescr, 'object',
       'Please update plugin to use property description.');
 
-    this.visible = propertyDescr.visible || true;
-    this.title = propertyDescr.title || propertyDescr.label;
-    this.type = propertyDescr.type;
-    this['@type'] = propertyDescr['@type'];
-    this.unit = propertyDescr.unit;
-    this.description = propertyDescr.description;
-    this.minimum = propertyDescr.minimum || propertyDescr.min;
-    this.maximum = propertyDescr.maximum || propertyDescr.max;
-    this.enum = propertyDescr.enum;
-    this.readOnly = propertyDescr.readOnly;
-    this.multipleOf = propertyDescr.multipleOf;
-    this.links = propertyDescr.links;
+    this.visible = { visible: this.visible, ...legacyPropertyDescr }.visible;
+
+    const propertyDescr = this.fromLegacyProperties(legacyPropertyDescr);
+    this.assign(this, propertyDescr);
+  }
+
+  private fromLegacyProperties(propertyDescr: LegacyPropertyDescription): PropertyDescription {
+    return {
+      ...propertyDescr,
+      title: propertyDescr.title || propertyDescr.label,
+      minimum: propertyDescr.minimum || propertyDescr.min,
+      maximum: propertyDescr.maximum || propertyDescr.max
+    }
+  }
+
+  private assign(target: PropertyDescription, source: PropertyDescription) {
+    target.title = source.title;
+    target.type = source.type;
+    target['@type'] = source['@type'];
+    target.unit = source.unit;
+    target.description = source.description;
+    target.minimum = source.minimum;
+    target.maximum = source.maximum;
+    target.enum = source.enum;
+    target.readOnly = source.readOnly;
+    target.multipleOf = source.multipleOf;
+    target.links = source.links;
+
+    return target;
   }
 
   /**
@@ -58,11 +75,12 @@ export class Property<T> implements PropertyDescription {
    * This is primarily used for debugging.
    */
   asDict(): PropertyDict<T> {
-    return {
+    const propertyDict = {
       name: this.name,
       value: this.value,
       visible: this.visible,
-    };
+    }
+    return { ...propertyDict, ...this.asPropertyDescription() };
   }
 
   /**
@@ -70,19 +88,7 @@ export class Property<T> implements PropertyDescription {
    * this does not include the href field.
    */
   asPropertyDescription(): PropertyDescription {
-    return {
-      title: this.title,
-      type: this.type,
-      '@type': this['@type'],
-      unit: this.unit,
-      description: this.description,
-      minimum: this.minimum,
-      maximum: this.maximum,
-      enum: this.enum,
-      readOnly: this.readOnly,
-      multipleOf: this.multipleOf,
-      links: this.links
-    };
+    return this.assign({}, this);
   }
 
   /**
@@ -193,14 +199,13 @@ export class Property<T> implements PropertyDescription {
   }
 }
 
-export interface PropertyDict<T> {
+export interface PropertyDict<T> extends PropertyDescription {
   name: string,
   value?: T,
   visible: boolean
 }
 
 export interface PropertyDescription {
-  visible?: boolean;
   title?: string;
   type?: string;
   '@type'?: string;
