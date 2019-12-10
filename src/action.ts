@@ -89,9 +89,9 @@ export class Action implements ActionDescription {
 
 interface ActionDescription {
   name: string,
-  timeRequested: string,
-  status: any,
   input?: any,
+  status: any,
+  timeRequested: string,
   timeCompleted?: any
 }
 
