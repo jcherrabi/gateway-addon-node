@@ -14,7 +14,7 @@ import { Device } from "./device";
 
 const assert = require('assert');
 
-export class Property implements PropertyDescription {
+export class Property<T> implements PropertyDescription {
   public visible: boolean;
   public title?: string;
   public type?: string;
@@ -28,8 +28,8 @@ export class Property implements PropertyDescription {
   public multipleOf?: number;
   public links?: string[];
 
-  public value: any;
-  public prevGetValue: any;
+  public value?: T;
+  public prevGetValue?: T;
 
   public fireAndForget = false;
 
@@ -57,7 +57,7 @@ export class Property implements PropertyDescription {
    * @returns a dictionary of useful information.
    * This is primarily used for debugging.
    */
-  asDict(): PropertyDict {
+  asDict(): PropertyDict<T> {
     return {
       name: this.name,
       value: this.value,
@@ -123,7 +123,7 @@ export class Property implements PropertyDescription {
   setCachedValue(value: any) {
     if (this.type === 'boolean') {
       // Make sure that the value is actually a boolean.
-      this.value = !!value;
+      this.value = (<any>!!value);
     } else {
       this.value = value;
     }
@@ -138,7 +138,7 @@ export class Property implements PropertyDescription {
    * the previously cached value.
    */
   getValue() {
-    return new Promise((resolve) => {
+    return new Promise<T>((resolve) => {
       if (this.value != this.prevGetValue) {
         console.log('getValue for property', this.name,
           'for:', this.device.title,
@@ -160,7 +160,7 @@ export class Property implements PropertyDescription {
    * by a derived class.
    */
   setValue(value: any) {
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       if (this.readOnly) {
         reject('Read-only property');
         return;
@@ -193,9 +193,9 @@ export class Property implements PropertyDescription {
   }
 }
 
-export interface PropertyDict {
+export interface PropertyDict<T> {
   name: string,
-  value: any,
+  value?: T,
   visible: boolean
 }
 
