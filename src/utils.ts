@@ -32,7 +32,7 @@ export function alignCenter(str: string, len: number): string {
   if (str.length >= len) {
     return str.slice(0, len);
   }
-  const leftSpace = parseInt("" + (len - str.length) / 2);
+  const leftSpace = (len - str.length) / 2;
   return padRight(padLeft(str, str.length + leftSpace), len);
 }
 
