@@ -666,7 +666,7 @@ export class AddonManagerProxy extends EventEmitter {
    * @method sendPropertyChangedNotification
    * Sends a propertyChanged notification to the gateway.
    */
-  sendPropertyChangedNotification(property: Property) {
+  sendPropertyChangedNotification<T>(property: Property<T>) {
     this.pluginClient.sendNotification(
       MessageType.DEVICE_PROPERTY_CHANGED_NOTIFICATION,
       {

@@ -23,7 +23,7 @@ export class Device {
   public '@type': string[] = [];
   public title = '';
   public description = '';
-  public properties = new Map<string, Property>();
+  public properties = new Map<string, Property<any>>();
   public actions = new Map<string, ActionMetadata>();
   public events = new Map<string, EventMetadata>();
   public links: Link[] = [];
@@ -47,7 +47,7 @@ export class Device {
   }
 
   asDict(): DeviceDict {
-    const properties: { [key: string]: PropertyDict } = {};
+    const properties: { [key: string]: PropertyDict<any> } = {};
     this.properties.forEach((property, propertyName) => {
       properties[propertyName] = property.asDict();
     });
@@ -185,7 +185,7 @@ export class Device {
     return this.properties.has(propertyName);
   }
 
-  notifyPropertyChanged(property: Property) {
+  notifyPropertyChanged<T>(property: Property<T>) {
     this.adapter.manager.sendPropertyChangedNotification(property);
   }
 
@@ -343,7 +343,7 @@ interface DeviceDescription {
 }
 
 interface DeviceDict extends DeviceDescription {
-  properties: { [key: string]: PropertyDict }
+  properties: { [key: string]: PropertyDict<any> }
 }
 
 interface Thing extends DeviceDescription {

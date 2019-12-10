@@ -12,7 +12,7 @@ import { Adapter } from "./adapter";
 import { Outlet } from "./outlet";
 
 export interface AddonManager {
-  sendPropertyChangedNotification(property: Property): void;
+  sendPropertyChangedNotification<T>(property: Property<T>): void;
   sendActionStatusNotification(action: Action): void;
   sendEventNotification(event: Event): void;
   sendConnectedNotification(device: Device, connected: boolean): void;
@@ -20,7 +20,7 @@ export interface AddonManager {
   userProfile: any;
   handleDeviceAdded(device: Device): void;
   handleDeviceRemoved(device: Device): void;
-  emit(eventType: any, property: Property | Action | Event | { device: Device, connected: boolean }): void;
+  emit<T>(eventType: any, property: Property<T> | Action | Event | { device: Device, connected: boolean }): void;
   sendPairingPrompt(adapter: Adapter, prompt: string, url?: string, device?: Device): void;
   sendUnpairingPrompt(adapter: Adapter, prompt: string, url?: string, device?: Device): void;
   handleOutletAdded(outlet: Outlet): void;
