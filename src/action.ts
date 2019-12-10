@@ -23,7 +23,7 @@ export class Action implements ActionDescription {
    * Initialize the object.
    *
    * @param {String} id ID of this action
-   * @param {Object} device Device this action belongs to
+   * @param {Device} device Device this action belongs to
    * @param {String} name Name of the action
    * @param {Object} input Any action inputs
    */
@@ -33,7 +33,7 @@ export class Action implements ActionDescription {
   /**
    * Get the action description.
    *
-   * @returns {Object} Description of the action as an object.
+   * @returns {ActionDescription} Description of the action as an object.
    */
   asActionDescription(): ActionDescription {
     const description: ActionDescription = {
@@ -56,7 +56,7 @@ export class Action implements ActionDescription {
   /**
    * Get the action description.
    *
-   * @returns {Object} Description of the action as an object.
+   * @returns {ActionDescriptionWithId} Description of the action as an object.
    */
   asDict(): ActionDescriptionWithId {
     return {

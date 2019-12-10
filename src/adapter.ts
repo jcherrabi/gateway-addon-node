@@ -122,7 +122,7 @@ export class Adapter {
    * @param {string} prompt - The prompt to send
    * @param {string} url - URL to site with further explanation or
    *                 troubleshooting info
-   * @param {Object?} device - Device the prompt is associated with
+   * @param {Device?} device - Device the prompt is associated with
    */
   sendPairingPrompt(prompt: string, url: string, device?: Device) {
     this.manager.sendPairingPrompt(this, prompt, url, device);
@@ -134,7 +134,7 @@ export class Adapter {
    * @param {string} prompt - The prompt to send
    * @param {string} url - URL to site with further explanation or
    *                 troubleshooting info
-   * @param {Object?} device - Device the prompt is associated with
+   * @param {Device?} device - Device the prompt is associated with
    */
   sendUnpairingPrompt(prompt: string, url: string, device?: Device) {
     this.manager.sendUnpairingPrompt(this, prompt, url, device);

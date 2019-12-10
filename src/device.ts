@@ -294,7 +294,7 @@ export class Device {
    * Add an action.
    *
    * @param {String} name Name of the action
-   * @param {Object} metadata Action metadata, i.e. type, description, etc., as
+   * @param {ActionMetadata} metadata Action metadata, i.e. type, description, etc., as
    *                          an object
    */
   addAction(name: string, metadata: ActionMetadata) {
@@ -310,7 +310,7 @@ export class Device {
    * Add an event.
    *
    * @param {String} name Name of the event
-   * @param {Object} metadata Event metadata, i.e. type, description, etc., as
+   * @param {EventMetadata} metadata Event metadata, i.e. type, description, etc., as
    *                          an object
    */
   addEvent(name: string, metadata: EventMetadata) {

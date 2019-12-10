@@ -26,7 +26,7 @@ export class APIRequest {
   /**
    * Build the request.
    *
-   * @param {object} params - Request parameters, as such:
+   * @param {RequestParams} params - Request parameters, as such:
    *                   .method {string} HTTP method, e.g. GET, POST, etc.
    *                   .path {string} Path relative to this handler, e.g.
    *                     '/mypath' rather than
@@ -62,7 +62,7 @@ export class APIResponse {
   /**
    * Build the response.
    *
-   * @param {object} params - Response parameters, as such:
+   * @param {ResponseParams} params - Response parameters, as such:
    *                   .status {number} (Required) Status code
    *                   .contentType {string} Content-Type of response content
    *                   .content {string} Response content

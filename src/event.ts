@@ -20,7 +20,7 @@ export class Event {
   /**
    * Initialize the object.
    *
-   * @param {Object} device Device this event belongs to
+   * @param {Device} device Device this event belongs to
    * @param {String} name Name of the event
    * @param {*} data (Optional) Data associated with the event
    */
@@ -30,7 +30,7 @@ export class Event {
   /**
    * Get the event description.
    *
-   * @returns {Object} Description of the event as an object.
+   * @returns {EventDescription} Description of the event as an object.
    */
   asEventDescription(): EventDescription {
     const description: EventDescription = {
@@ -48,7 +48,7 @@ export class Event {
   /**
    * Get the event description.
    *
-   * @returns {Object} Description of the event as an object.
+   * @returns {EventDescription} Description of the event as an object.
    */
   asDict(): EventDescription {
     return {
