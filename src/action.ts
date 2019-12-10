@@ -16,7 +16,7 @@ import { Device } from './device';
  */
 export class Action implements ActionDescription {
   public status: string = 'created';
-  public timeRequested: string = utils.timestamp();;
+  public timeRequested: string = utils.timestamp();
   public timeCompleted?: string;
 
   /**
